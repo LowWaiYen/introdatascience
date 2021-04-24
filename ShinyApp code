@@ -1,0 +1,39 @@
+library(shiny)
+library(dplyr)
+library(tibble)
+library(stringr)
+library(ggplot2)
+library(rsconnect)
+
+ui <- fluidPage(
+  titlePanel("Probability of getting a job"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput(inputId = "n", label = "Number of jobs applied:",
+                  min = 0, max = 50, value = 25),
+      sliderInput(inputId = "prob", label = "Employability attractiveness:",
+                  min = 0, max = 1, value = 0.5),
+    ),
+    mainPanel(plotOutput(outputId = "bars"))
+  )
+)
+
+server <- function(input, output) {
+  output$bars <- renderPlot({
+    success <- tibble(success = rbinom(input$n, 1, input$prob)) %>%
+      mutate(success = if_else(success == 1, "Hired", "Not Hired"))
+    success %>%
+      count(success) %>%
+      ggplot(aes(success, n, fill = success)) +
+      geom_col() +
+      geom_label(aes(success, n, label = n), size = 5) +
+      theme(legend.position = "none",
+            axis.text = element_text(size = 15)) +
+      labs(x = "", y = "") +
+      ggtitle(str_c("Results of ", input$n,
+                    " jobs applied with employability attractiveness of ",
+                    sprintf("%.2f", input$prob)))
+  })
+}
+
+shinyApp(ui = ui, server = server)
